@@ -1,0 +1,89 @@
+---
+plugins:
+  - rubocop-performance
+  - rubocop-rake
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.0
+  # Merge our exclusions with RuboCop's defaults (vendor/**/*, etc.) instead of
+  # replacing them, so a vendored bundle (CI bundler-cache) is never inspected.
+  inherit_mode:
+    merge:
+      - Exclude
+  Exclude:
+    - bin/*
+    - lib/dolibarr-client.rb
+
+Gemspec/RequireMFA:
+  Enabled: false
+
+#########
+# STYLE #
+#########
+
+Style/Documentation:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+##########
+# LAYOUT #
+##########
+
+Layout/HashAlignment:
+  EnforcedColonStyle: table
+  EnforcedHashRocketStyle: table
+
+###########
+# METRICS #
+###########
+
+# The domain methods take one keyword per Dolibarr query parameter, mirroring the REST
+# surface. Keyword args don't carry the positional-confusion risk this cop guards
+# against, so they are not counted.
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+# The `list` methods are long only because they map one query key per line — declarative
+# data, not branching logic. A modest bump keeps genuine complexity flagged.
+Metrics/MethodLength:
+  Max: 15
+
+#########
+# RSPEC #
+#########
+
+RSpec/ExampleLength:
+  Max: 12
+
+# The smoke and e2e suites describe a behaviour/scenario, not a class.
+RSpec/DescribeClass:
+  Exclude:
+    - spec/smoke/**/*
+    - spec/e2e/**/*
+
+# The e2e suite is one expensive scenario: it boots a dockerized Dolibarr once in
+# before(:all) and shares the result across examples via instance variables. The cops
+# that assume cheap, isolated, per-example setup are relaxed for that directory only.
+RSpec/InstanceVariable:
+  Exclude:
+    - spec/e2e/**/*
+
+RSpec/BeforeAfterAll:
+  Exclude:
+    - spec/e2e/**/*
+
+RSpec/MultipleExpectations:
+  Max: 6
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 8
