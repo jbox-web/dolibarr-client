@@ -1,0 +1,26 @@
+[settings]
+experimental = true
+
+[tools]
+ruby = "3.4.9"
+
+[settings.ruby]
+compile = false
+
+# Dev tasks (mirrors dolibarr-api). Interactive use can call the bin/ binstubs directly;
+# these give CI and scripts a stable entry point.
+[tasks."dev:deps"]
+description = "Install dependencies"
+run = "bundle install"
+
+[tasks."dev:spec"]
+description = "Run the unit spec suite"
+run = "bin/rspec"
+
+[tasks."dev:e2e"]
+description = "Run the opt-in end-to-end suite (needs Docker)"
+run = "bin/rake spec:e2e"
+
+[tasks."dev:docs"]
+description = "Generate YARD API documentation into ./doc"
+run = "bin/yard"

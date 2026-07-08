@@ -1,0 +1,66 @@
+# Disposable Dolibarr 23.0.3 for end-to-end tests. Everything here is throwaway:
+# ephemeral named volumes (removed by `docker compose down -v`), test-only credentials,
+# and a loopback-only high port. NEVER point these tests at a real instance — the e2e
+# suite writes (create/validate/pay). Driven by `rake spec:e2e`.
+#
+# MariaDB (not PostgreSQL) on purpose: the official dolibarr/dolibarr image only
+# auto-installs the schema on MySQL/MariaDB (its entrypoint gates DB init on
+# DB_TYPE != pgsql). The DB backend is irrelevant to what the e2e suite checks — the
+# wrapper against a live REST API — so we take the image's supported, deterministic
+# auto-install path. Production stays on PostgreSQL; the read-only smoke test covers it.
+name: dolibarr-client-e2e
+
+services:
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: dolibarr
+      MARIADB_USER: dolibarr
+      MARIADB_PASSWORD: dolibarr
+      MARIADB_ROOT_PASSWORD: dolibarr
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      - e2e
+
+  dolibarr:
+    image: dolibarr/dolibarr:23.0.3
+    environment:
+      DOLI_DB_TYPE: mysqli
+      DOLI_DB_HOST: mariadb
+      DOLI_DB_HOST_PORT: 3306
+      DOLI_DB_NAME: dolibarr
+      DOLI_DB_USER: dolibarr
+      DOLI_DB_PASSWORD: dolibarr
+      # Auto-install so the REST API answers without the web wizard.
+      DOLI_INSTALL_AUTO: 1
+      DOLI_ADMIN_LOGIN: admin
+      DOLI_ADMIN_PASSWORD: e2e-admin-pass
+      DOLI_URL_ROOT: 'http://localhost:7002'
+      PHP_INI_DATE_TIMEZONE: 'Europe/Paris'
+    ports:
+      - '127.0.0.1:7002:80'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    volumes:
+      - documents:/var/www/documents
+    healthcheck:
+      test: ['CMD', 'curl', '--silent', '--show-error', '--fail', '--max-time', '3', 'http://0.0.0.0']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - e2e
+
+volumes:
+  db:
+  documents:
+
+networks:
+  e2e:
