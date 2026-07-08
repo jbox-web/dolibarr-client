@@ -22,4 +22,15 @@ RSpec.describe 'live read-only smoke', :smoke do
     expect(invoices.size).to be <= 1
     expect(invoices).to all(be_a(Dolibarr::Invoice))
   end
+
+  # Regression guard for the `mode` translation: Dolibarr answers HTTP 400 when the
+  # raw label "customer" is passed instead of the integer code 1. Bounded to one row
+  # to stay a lightweight, read-only GET (same translation path as #all).
+  it 'lists customers by business mode without raising a 400' do
+    customers = client.thirdparties.list(mode: 'customer', limit: 1)
+
+    expect(customers).to be_an(Array)
+    expect(customers.size).to be <= 1
+    expect(customers).to all(be_a(Dolibarr::Thirdparty))
+  end
 end

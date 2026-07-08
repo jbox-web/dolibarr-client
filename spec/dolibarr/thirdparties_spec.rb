@@ -28,6 +28,45 @@ RSpec.describe Dolibarr::Thirdparties do
     end
   end
 
+  describe '#list mode translation' do
+    before { allow(connection).to receive(:call).and_return(resp([])) }
+
+    # Dolibarr's `mode` filter is an integer (api_thirdparties.class.php@23.0.3):
+    # 1=customers, 2=prospects, 4=suppliers. The wrapper exposes readable values.
+    { 'customer' => 1, 'prospect' => 2, 'supplier' => 4 }.each do |value, code|
+      it "maps the string #{value.inspect} to Dolibarr code #{code}" do
+        thirdparties.list(mode: value)
+
+        expect(connection).to have_received(:call).with(
+          :GET, '/thirdparties', hash_including(query: hash_including('mode' => code))
+        )
+      end
+
+      it "maps the symbol :#{value} to Dolibarr code #{code}" do
+        thirdparties.list(mode: value.to_sym)
+
+        expect(connection).to have_received(:call).with(
+          :GET, '/thirdparties', hash_including(query: hash_including('mode' => code))
+        )
+      end
+    end
+
+    it 'raises a clear error on an unknown mode, never sending it to the API' do
+      expect { thirdparties.list(mode: 'ghost') }
+        .to raise_error(Dolibarr::Client::Error, /unknown thirdparty mode.*ghost.*customer.*prospect.*supplier/i)
+
+      expect(connection).not_to have_received(:call)
+    end
+
+    it 'leaves an absent mode untouched (unfiltered list still works)' do
+      thirdparties.list
+
+      expect(connection).to have_received(:call).with(
+        :GET, '/thirdparties', hash_including(query: hash_including('mode' => nil))
+      )
+    end
+  end
+
   describe '#all' do
     it 'paginates transparently' do
       allow(connection).to receive(:call).and_return(
