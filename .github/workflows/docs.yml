@@ -37,7 +37,7 @@ jobs:
       - name: Generate API docs (YARD)
         run: mise dev:docs
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./doc
       - name: Deploy to GitHub Pages
